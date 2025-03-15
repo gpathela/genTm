@@ -27,15 +27,18 @@ jobs:
         aws-region: us-east-1
 
     # Install dependencies for frontend
-    - name: Install Dependencies
+    - name: Install Frontend Dependencies
       run: npm install
+      working-directory: frontend
 
+
+    # Build the frontend React app
     - name: Build React App
       run: |
         npm run build
         ls -la
-      working-directory: .
-
+      working-directory: frontend
+    
     - name: Verify Build Directory
       run: |
         if [ ! -d "./build" ]; then 
@@ -46,7 +49,7 @@ jobs:
     # Deploy React App to S3 & CloudFront
     - name: Deploy React App to S3
       run: |
-        aws s3 sync frontend/build s3://your-s3-bucket-name --delete
+        aws s3 sync ./build s3://your-s3-bucket-name --delete
       working-directory: frontend
 
     - name: Invalidate CloudFront Cache
