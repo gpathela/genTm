@@ -62,7 +62,7 @@ jobs:
       working-directory: frontend
     - name: Deploy Infrastructure with CDK (Including React App)
       run: |
-        npx cdk deploy --require-approval never
+        npm run cdk deploy -- --require-approval never
       working-directory: frontend/cdk
 
     - name: Invalidate CloudFront Cache
