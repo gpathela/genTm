@@ -39,6 +39,9 @@ jobs:
         ls -la
       working-directory: frontend
     
+    - name: Fix Build Directory Permissions
+      run: sudo chown -R $USER:$USER build
+    
     - name: Verify Build Directory
       run: |
         if [ ! -d "./build" ]; then 
