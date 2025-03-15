@@ -39,6 +39,16 @@ jobs:
         ls -la
       working-directory: frontend
     
+    - name: Debug Build Directory Permissions
+      run: |
+        echo "Checking file permissions..."
+        ls -lah
+        echo "Checking ownership..."
+        ls -ld build
+        echo "Checking who can write to build directory..."
+        test -w build && echo "✅ Write access exists" || echo "❌ No write access"
+      working-directory: .
+    
     - name: Fix Build Directory Permissions
       run: sudo chown -R $USER:$USER build
     
