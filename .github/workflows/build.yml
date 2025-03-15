@@ -31,7 +31,13 @@ jobs:
       run: npm install
       working-directory: frontend
 
-    
+    # Build the frontend React app
+    - name: Build React App
+      run: |
+        npm run build
+        ls -Rla
+      working-directory: frontend
+
     # Deploy React App to S3 & CloudFront
     - name: Deploy React App to S3
       run: |
@@ -50,7 +56,7 @@ jobs:
         echo "Frontend is deployed at https://$CLOUDFRONT_DOMAIN"
         echo "allowedip=$(dig +short $CLOUDFRONT_DOMAIN | head -n 1)/32" >> $GITHUB_ENV
 
-    # Install dependencies for backend
+     # Install dependencies for backend
     - name: Install Backend Dependencies
       run: npm install
       working-directory: backend
