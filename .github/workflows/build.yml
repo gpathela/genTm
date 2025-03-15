@@ -1,4 +1,4 @@
-name: CDK Deploy
+name: Full CDK Deploy (Backend + Frontend)
 
 on:
   push:
@@ -18,19 +18,48 @@ jobs:
       with:
         node-version: '22'
 
-    - name: Install dependencies
-      run: npm install
-      working-directory: backend
-
-    #- name: Bootstrap Cloud
-      #run: npm ci
-
+    # Configure AWS credentials
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
-    - name: Deploy
-      run: npx cdk deploy --require-approval never --context allowedip="0.0.0.0/1,128.0.0.0/1"
+
+    # Install dependencies for backend
+    - name: Install Backend Dependencies
+      run: npm install
+      working-directory: backend
+
+    # Install dependencies for frontend
+    - name: Install Frontend Dependencies
+      run: npm install
+      working-directory: frontend
+
+    # Build the frontend React app
+    - name: Build React App
+      run: npm run build
+      working-directory: frontend
+
+    # Deploy React App to S3 & CloudFront
+    - name: Deploy React App to S3
+      run: |
+        aws s3 sync frontend/build s3://your-s3-bucket-name --delete
+      working-directory: frontend
+
+    - name: Invalidate CloudFront Cache
+      run: |
+        DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName=='your-s3-bucket-name.s3.amazonaws.com'].Id" --output text)
+        aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+
+    # Fetch CloudFront IP (or use EC2 Public IP if deployed on EC2)
+    - name: Get CloudFront IP
+      run: |
+        CLOUDFRONT_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName=='your-s3-bucket-name.s3.amazonaws.com'].DomainName" --output text)
+        echo "Frontend is deployed at https://$CLOUDFRONT_DOMAIN"
+        echo "allowedip=$(dig +short $CLOUDFRONT_DOMAIN | head -n 1)/32" >> $GITHUB_ENV
+
+    # Deploy Backend with CDK
+    - name: Deploy Backend with CDK
+      run: npx cdk deploy --require-approval never --context allowedip="${{ env.allowedip }}"
       working-directory: backend
