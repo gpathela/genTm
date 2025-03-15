@@ -27,16 +27,21 @@ jobs:
         aws-region: us-east-1
 
     # Install dependencies for frontend
-    - name: Install Frontend Dependencies
+    - name: Install Dependencies
       run: npm install
-      working-directory: frontend
 
-    # Build the frontend React app
     - name: Build React App
       run: |
         npm run build
-        ls -Rla
-      working-directory: frontend
+        ls -la
+      working-directory: .
+
+    - name: Verify Build Directory
+      run: |
+        if [ ! -d "./build" ]; then 
+          echo "Build directory not found! Exiting.";
+          exit 1;
+        fi
 
     # Deploy React App to S3 & CloudFront
     - name: Deploy React App to S3
