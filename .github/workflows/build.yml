@@ -60,11 +60,10 @@ jobs:
           exit 1;
         fi
       working-directory: frontend
-    # Deploy React App to S3 & CloudFront
-    - name: Deploy React App to S3
+    - name: Deploy Infrastructure with CDK (Including React App)
       run: |
-        aws s3 sync ./build s3://your-s3-bucket-name --delete
-      working-directory: frontend
+        npx cdk deploy --require-approval never
+      working-directory: frontend/cdk
 
     - name: Invalidate CloudFront Cache
       run: |
