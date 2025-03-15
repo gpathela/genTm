@@ -66,23 +66,70 @@ jobs:
         npm install
         npm install --save-dev aws-cdk
       working-directory: frontend/cdk
-      
+
     - name: Deploy Infrastructure with CDK (Including React App)
       run: |
         npm run cdk deploy -- --require-approval never
       working-directory: frontend/cdk
 
+    
+    - name: Get S3 Bucket Name
+      run: |
+        S3_BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name ReactAppCdkStack \
+          --query "Stacks[0].Outputs[?OutputKey=='S3BucketName'].OutputValue" --output text)
+
+        if [[ -z "$S3_BUCKET_NAME" ]]; then
+          echo "❌ S3 bucket name not found!"
+          exit 1
+        fi
+
+        echo "✅ Found S3 Bucket Name: $S3_BUCKET_NAME"
+        echo "S3_BUCKET_NAME=$S3_BUCKET_NAME" >> $GITHUB_ENV
+
+
+    - name: Get CloudFront Distribution ID
+      run: |
+        DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+          --query "DistributionList.Items[?contains(Origins.Items[0].DomainName, '$S3_BUCKET_NAME.s3.amazonaws.com')].Id" --output text)
+
+        if [[ -z "$DISTRIBUTION_ID" ]]; then
+          echo "❌ No CloudFront distribution found!"
+          exit 1
+        fi
+
+        echo "✅ Found CloudFront Distribution ID: $DISTRIBUTION_ID"
+        echo "DISTRIBUTION_ID=$DISTRIBUTION_ID" >> $GITHUB_ENV
+
+    # Invalidate CloudFront Cache
     - name: Invalidate CloudFront Cache
       run: |
-        DISTRIBUTION_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName=='your-s3-bucket-name.s3.amazonaws.com'].Id" --output text)
         aws cloudfront create-invalidation --distribution-id $DISTRIBUTION_ID --paths "/*"
+        echo "✅ CloudFront cache invalidation triggered"
 
-    # Fetch CloudFront IP (or use EC2 Public IP if deployed on EC2)
+    # Step 4: Fetch CloudFront Domain & Public IP
     - name: Get CloudFront IP
       run: |
-        CLOUDFRONT_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName=='your-s3-bucket-name.s3.amazonaws.com'].DomainName" --output text)
-        echo "Frontend is deployed at https://$CLOUDFRONT_DOMAIN"
-        echo "allowedip=$(dig +short $CLOUDFRONT_DOMAIN | head -n 1)/32" >> $GITHUB_ENV
+        CLOUDFRONT_DOMAIN=$(aws cloudfront list-distributions \
+          --query "DistributionList.Items[?Id=='$DISTRIBUTION_ID'].DomainName" --output text)
+
+        if [[ -z "$CLOUDFRONT_DOMAIN" ]]; then
+          echo "❌ CloudFront domain not found!"
+          exit 1
+        fi
+
+        echo "✅ CloudFront deployed at: https://$CLOUDFRONT_DOMAIN"
+        echo "CLOUDFRONT_DOMAIN=$CLOUDFRONT_DOMAIN" >> $GITHUB_ENV
+
+        CLOUDFRONT_IP=$(dig +short $CLOUDFRONT_DOMAIN | head -n 1)
+
+        if [[ -z "$CLOUDFRONT_IP" ]]; then
+          echo "❌ Failed to fetch CloudFront IP!"
+          exit 1
+        fi
+
+        echo "✅ CloudFront IP: $CLOUDFRONT_IP"
+        echo "allowedip=$CLOUDFRONT_IP/32" >> $GITHUB_ENV
+
 
      # Install dependencies for backend
     - name: Install Backend Dependencies
