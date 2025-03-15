@@ -47,10 +47,11 @@ jobs:
         ls -ld build
         echo "Checking who can write to build directory..."
         test -w build && echo "✅ Write access exists" || echo "❌ No write access"
-      working-directory: .
+      working-directory: frontend
     
     - name: Fix Build Directory Permissions
       run: sudo chown -R $USER:$USER build
+      working-directory: frontend
     
     - name: Verify Build Directory
       run: |
@@ -58,7 +59,7 @@ jobs:
           echo "Build directory not found! Exiting.";
           exit 1;
         fi
-
+      working-directory: frontend
     # Deploy React App to S3 & CloudFront
     - name: Deploy React App to S3
       run: |
