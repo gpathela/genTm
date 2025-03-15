@@ -60,6 +60,13 @@ jobs:
           exit 1;
         fi
       working-directory: frontend
+    
+    - name: Install CDK and Dependencies
+      run: |
+        npm install
+        npm install --save-dev aws-cdk
+      working-directory: frontend/cdk
+      
     - name: Deploy Infrastructure with CDK (Including React App)
       run: |
         npm run cdk deploy -- --require-approval never
