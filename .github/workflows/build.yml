@@ -26,11 +26,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    # Install dependencies for backend
-    - name: Install Backend Dependencies
-      run: npm install
-      working-directory: backend
-
     # Install dependencies for frontend
     - name: Install Frontend Dependencies
       run: npm install
@@ -54,6 +49,11 @@ jobs:
         CLOUDFRONT_DOMAIN=$(aws cloudfront list-distributions --query "DistributionList.Items[?Origins.Items[0].DomainName=='your-s3-bucket-name.s3.amazonaws.com'].DomainName" --output text)
         echo "Frontend is deployed at https://$CLOUDFRONT_DOMAIN"
         echo "allowedip=$(dig +short $CLOUDFRONT_DOMAIN | head -n 1)/32" >> $GITHUB_ENV
+
+    # Install dependencies for backend
+    - name: Install Backend Dependencies
+      run: npm install
+      working-directory: backend
 
     # Deploy Backend with CDK
     - name: Deploy Backend with CDK
